@@ -55,7 +55,9 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: packages
-          path: dist/*.zip
+          path: |
+            dist/*.zip
+            dist/*.mzp
 
       - name: Attach the Blender add-on to the release
         if: github.ref_type == 'tag' && !startsWith(github.ref_name, 'max-v')
@@ -68,5 +70,8 @@ jobs:
         if: startsWith(github.ref_name, 'max-v')
         uses: softprops/action-gh-release@v2
         with:
-          files: dist/unity_material_max-*.zip
+          # The .mzp installs itself; the .zip is for installing by hand.
+          files: |
+            dist/unity_material_max-*.mzp
+            dist/unity_material_max-*.zip
           generate_release_notes: true

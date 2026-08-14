@@ -1,0 +1,8 @@
+name "Unity Material Browser"
+description "Unity materials as 3ds Max material libraries"
+version 1
+treeCopy unity_material_max to $userScripts
+treeCopy unity_pipeline_core to $userScripts
+copy UnityMaterialBrowser.mcr to $userMacros
+run install.ms
+clear temp on MAX exit
