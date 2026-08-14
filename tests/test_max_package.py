@@ -63,6 +63,27 @@ class MaxPackageTests(unittest.TestCase):
         self.assertIn("UnityMaterialBrowser_Build`Unity Material Browser", startup)
         self.assertNotIn("menuMan.", startup)
 
+    def test_the_menu_configuration_is_reloaded(self):
+        # Startup scripts run after #cuiRegisterMenus has already fired, so
+        # registering the callback without reloading leaves the menu bar as it
+        # was and the entry never appears.
+        with zipfile.ZipFile(self.mzp) as archive:
+            startup = archive.read("unity_material_browser_startup.ms").decode("ascii")
+        self.assertIn("maxOps.GetICuiMenuMgr()", startup)
+        self.assertIn("LoadConfiguration", startup)
+        self.assertIn("GetCurrentConfiguration", startup)
+
+    def test_menu_ids_are_guid_strings(self):
+        # CreateSubMenu and CreateAction are interface methods: they take GUID
+        # strings and reject a number pair with a type error at startup.
+        with zipfile.ZipFile(self.mzp) as archive:
+            startup = archive.read("unity_material_browser_startup.ms").decode("ascii")
+        for line in startup.splitlines():
+            if line.startswith("global UMB_MENU_ID") or line.startswith("global UMB_ACTION_ID"):
+                value = line.split("=", 1)[1].strip()
+                self.assertTrue(value.startswith('"') and value.endswith('"'), line)
+                self.assertRegex(value, r'^"[0-9A-F]{8}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{12}"$')
+
     def test_maxscript_files_are_plain_ascii(self):
         # MAXScript reads these as plain text; a stray byte turns the installer
         # into a syntax error.
