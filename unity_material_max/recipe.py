@@ -23,7 +23,9 @@ BASE_COLOR_MAP = "base_color_map"
 METALNESS_MAP = "metalness_map"
 ROUGHNESS_MAP = "roughness_map"
 BUMP_MAP = "bump_map"
-EMISSION_MAP = "emission_map"
+# `emission_map` drives the emission *weight*; a Unity emission texture is a
+# colour, so it belongs in the colour slot.
+EMISSION_MAP = "emit_color_map"
 CUTOUT_MAP = "cutout_map"
 
 # Unity stores non-colour data linearly; Max decides colour space by the gamma

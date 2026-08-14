@@ -7,7 +7,14 @@ without Max.
 
 from __future__ import annotations
 
+import json
+
 from .recipe import BUMP_MAP, MaterialRecipe
+
+
+# One AppData slot holds the whole provenance record as JSON. The number is
+# arbitrary but must never change: it is how the record is found again.
+APPDATA_ID = 1969001
 
 
 def _runtime():
@@ -65,13 +72,35 @@ def build_material(recipe: MaterialRecipe):
         setattr(material, slot, texture)
         setattr(material, f"{slot}_on", True)
 
-    # Provenance travels with the material, exactly as in the Blender build, so
-    # the differ and any later tooling can tell where it came from.
-    if recipe.unity_guid:
-        runtime.setUserProp(material, "ump_unity_guid", recipe.unity_guid)
-    if recipe.unity_path:
-        runtime.setUserProp(material, "ump_unity_path", recipe.unity_path)
-    if recipe.shader_name:
-        runtime.setUserProp(material, "ump_shader_name", recipe.shader_name)
-
+    _write_provenance(runtime, material, recipe)
     return material
+
+
+def _write_provenance(runtime, material, recipe: MaterialRecipe) -> None:
+    """Store where the material came from, the way materials can carry data.
+
+    `setUserProp` is for scene nodes; a material is a MAXWrapper, and AppData is
+    what survives a save and reload on one. Everything goes into a single slot as
+    JSON so the record can grow without hunting for free ids.
+    """
+    payload = json.dumps(
+        {
+            "ump_unity_guid": recipe.unity_guid,
+            "ump_unity_path": recipe.unity_path,
+            "ump_shader_name": recipe.shader_name,
+        },
+        ensure_ascii=False,
+    )
+    runtime.setAppData(material, APPDATA_ID, payload)
+
+
+def read_provenance(material) -> dict:
+    """Read back what `_write_provenance` stored, or an empty record."""
+    runtime = _runtime()
+    raw = runtime.getAppData(material, APPDATA_ID)
+    if not raw:
+        return {}
+    try:
+        return json.loads(str(raw))
+    except ValueError:
+        return {}
