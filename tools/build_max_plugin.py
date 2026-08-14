@@ -25,7 +25,12 @@ PACKAGES = ("unity_material_max", "unity_pipeline_core")
 INIT_PATH = PROJECT_ROOT / "unity_material_max" / "__init__.py"
 INSTALLER_DIR = Path(__file__).resolve().parent / "max_installer"
 # mzp.run must sit at the root of the package: that is where 3ds Max looks.
-INSTALLER_FILES = ("mzp.run", "install.ms", "UnityMaterialBrowser.mcr")
+INSTALLER_FILES = (
+    "mzp.run",
+    "install.ms",
+    "UnityMaterialBrowser.mcr",
+    "unity_material_browser_startup.ms",
+)
 
 EXCLUDED_PARTS = {"__pycache__", ".git"}
 EXCLUDED_SUFFIXES = {".pyc", ".pyo"}

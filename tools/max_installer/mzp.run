@@ -4,5 +4,6 @@ version 1
 treeCopy unity_material_max to $userScripts
 treeCopy unity_pipeline_core to $userScripts
 copy UnityMaterialBrowser.mcr to $userMacros
+copy unity_material_browser_startup.ms to $userScripts
 run install.ms
 clear temp on MAX exit

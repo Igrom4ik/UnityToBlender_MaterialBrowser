@@ -50,13 +50,29 @@ class MaxPackageTests(unittest.TestCase):
         self.assertIn("treeCopy unity_material_max to $userScripts", run)
         self.assertIn("treeCopy unity_pipeline_core to $userScripts", run)
         self.assertIn("copy UnityMaterialBrowser.mcr to $userMacros", run)
+        self.assertIn("copy unity_material_browser_startup.ms to $userScripts", run)
         self.assertIn("run install.ms", run)
+
+    def test_the_menu_uses_the_api_that_exists_in_2025_and_later(self):
+        # menuMan was removed in 3ds Max 2025: a menu is registered by answering
+        # the #cuiRegisterMenus callback, and 647394 is the macroscript table.
+        with zipfile.ZipFile(self.mzp) as archive:
+            startup = archive.read("unity_material_browser_startup.ms").decode("ascii")
+        self.assertIn("#cuiRegisterMenus", startup)
+        self.assertIn("647394", startup)
+        self.assertIn("UnityMaterialBrowser_Build`Unity Material Browser", startup)
+        self.assertNotIn("menuMan.", startup)
 
     def test_maxscript_files_are_plain_ascii(self):
         # MAXScript reads these as plain text; a stray byte turns the installer
         # into a syntax error.
         with zipfile.ZipFile(self.mzp) as archive:
-            for name in ("mzp.run", "install.ms", "UnityMaterialBrowser.mcr"):
+            for name in (
+                "mzp.run",
+                "install.ms",
+                "UnityMaterialBrowser.mcr",
+                "unity_material_browser_startup.ms",
+            ):
                 archive.read(name).decode("ascii")
 
     def test_the_payload_is_the_whole_plugin(self):
