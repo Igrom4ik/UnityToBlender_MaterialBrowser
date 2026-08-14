@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import os
 from pathlib import Path
+import re
 import subprocess
 import sys
 import time
@@ -306,8 +307,16 @@ def active_material(context):
     return getattr(getattr(context, "object", None), "active_material", None)
 
 
+_COPY_SUFFIX = re.compile(r"_edit(_\d+)?$", re.IGNORECASE)
+
+
 def _default_copy_name(material) -> str:
-    base = f"{material.name}_edit"
+    """Next free `<unity name>_edit` name.
+
+    A copy of a copy keeps counting instead of stacking suffixes, so the third
+    take is `Wall_edit_03`, not `Wall_edit_edit_edit`.
+    """
+    base = f"{_COPY_SUFFIX.sub('', material.name)}_edit"
     if base not in bpy.data.materials:
         return base
     for number in range(2, 1000):
@@ -345,9 +354,13 @@ class UMB_OT_MakeEditableCopy(LocalizedDescription, Operator):
         "Скопировать материал библиотеки в этот файл под новым именем и назначить его "
         "выделенным объектам. Библиотека и проект Unity не меняются"
     )
-    bl_options = {"REGISTER", "UNDO"}
+    # No REGISTER: the Adjust Last Operation panel would re-run this against the
+    # copy it just made and refuse its own name. Undo still works.
+    bl_options = {"UNDO"}
 
-    new_name: StringProperty(name="New name", default="")
+    # SKIP_SAVE so the dialog always opens on a freshly computed name instead of
+    # the one used last time.
+    new_name: StringProperty(name="New name", default="", options={"SKIP_SAVE"})
 
     @classmethod
     def poll(cls, context):

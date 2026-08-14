@@ -6,7 +6,7 @@ phase B on top. Nothing here assumes a project location -- callers pass paths.
 
 from __future__ import annotations
 
-__version__ = "0.12.0"
+__version__ = "0.12.1"
 
 from . import extract, material_json, profiles, sync, texture_meta, unity_library  # noqa: F401
 from .shader_parser import ShaderResolver  # noqa: F401

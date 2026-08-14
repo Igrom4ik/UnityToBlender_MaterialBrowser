@@ -1,7 +1,7 @@
 schema_version = "1.0.0"
 
 id = "unity_material_browser"
-version = "0.12.0"
+version = "0.12.1"
 name = "Unity Material Browser"
 tagline = "Turn Unity materials into a Blender asset library"
 maintainer = "Igrom4ik"

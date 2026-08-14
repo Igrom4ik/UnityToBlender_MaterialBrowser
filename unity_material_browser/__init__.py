@@ -7,7 +7,7 @@ The Unity project is only ever read.
 
 from __future__ import annotations
 
-__version__ = "0.12.0"
+__version__ = "0.12.1"
 
 import bpy
 

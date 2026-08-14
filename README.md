@@ -1,4 +1,4 @@
-# Unity Material Browser 0.12.0
+# Unity Material Browser 0.12.1
 
 Аддон Blender 5.2, который превращает материалы Unity в библиотеку ассетов
 Blender: материалы появляются в Asset Browser с каталогами по структуре папок
@@ -46,7 +46,7 @@ python tools/build_extension.py --output-dir dist
 ```
 
 2. В Blender: `Edit > Preferences > Extensions > Install from Disk`, выберите
-   `dist/unity_material_browser-0.12.0.zip`.
+   `dist/unity_material_browser-0.12.1.zip`.
 3. Откройте `3D View > N-панель > Unity Materials`.
 
 ## Порядок работы
@@ -146,14 +146,14 @@ python -m compileall -q unity_pipeline_core unity_material_browser tools
 Сквозная проверка в Blender:
 
 ```bash
-blender --background --factory-startup --python tests/blender_smoke.py -- --zip dist/unity_material_browser-0.12.0.zip --materials <папка .mat> --assets <папка текстур> --assets <папка шейдеров> --library <папка библиотеки>
+blender --background --factory-startup --python tests/blender_smoke.py -- --zip dist/unity_material_browser-0.12.1.zip --materials <папка .mat> --assets <папка текстур> --assets <папка шейдеров> --library <папка библиотеки>
 ```
 
 Операторы, которые проверяются только внутри Blender — способ импорта библиотеки,
 редактируемая копия, поведение undo после перетаскивания:
 
 ```bash
-blender --background --factory-startup --python tests/blender_material_ops.py -- --zip dist/unity_material_browser-0.12.0.zip --library <папка собранной библиотеки>
+blender --background --factory-startup --python tests/blender_material_ops.py -- --zip dist/unity_material_browser-0.12.1.zip --library <папка собранной библиотеки>
 ```
 
 Ядро (`unity_pipeline_core/`) не импортирует `bpy` и тестируется без Blender;

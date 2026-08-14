@@ -2,7 +2,7 @@
 
 Run with:
     blender --background --factory-startup --python tests/blender_material_ops.py -- \
-        --zip dist/unity_material_browser-0.12.0.zip --library <a built library folder>
+        --zip dist/unity_material_browser-0.12.1.zip --library <a built library folder>
 
 The library folder must already contain a built .blend (see blender_smoke.py).
 Preferences are never saved: --factory-startup keeps this out of the real
@@ -118,6 +118,21 @@ def check_editable_copy(library: Path) -> None:
         refused = True
     check(refused, "a name that is already taken is refused")
     check(len(bpy.data.materials) == before, "the refused call created nothing")
+
+    from bl_ext.user_default.unity_material_browser import operators as umb_operators
+
+    # The operator must stay out of the Adjust Last Operation panel: re-running
+    # it there would hit the copy it just made and refuse its own name.
+    options = umb_operators.UMB_OT_MakeEditableCopy.bl_options
+    check("REGISTER" not in options, "the operator does not offer a redo panel")
+    check("UNDO" in options, "the copy is undoable")
+
+    # A copy of a copy keeps counting rather than stacking _edit suffixes.
+    copy.name = "Wall_edit_01"
+    check(
+        umb_operators._default_copy_name(copy) == "Wall_edit",
+        f"a copy of a copy is named sensibly: {umb_operators._default_copy_name(copy)}",
+    )
 
 
 def check_undo(library: Path) -> None:
