@@ -11,10 +11,14 @@
 | Модуль | Ответственность | Импортирует `pymxs` |
 | --- | --- | --- |
 | `material_builder.py` | `ConversionPlan` → Physical Material: параметры, Bitmap-текстуры, распаковка `_NMG` | да |
-| `library_build.py` | запись `.mat`-библиотек по каталогам Unity | да |
+| `library_build.py` | `materialLibrary` → `saveTempMaterialLibrary`: `.mat` на каталог Unity | да |
+| `batch_build.py` | точка входа для `3dsmaxbatch.exe`: сборка без интерфейса | да |
 | `ui.py` | диалог PySide2/6: источники, папка библиотеки, сборка, отчёт | да |
 | `settings.py` | настройки в `%LOCALAPPDATA%`, а не в сцене | нет |
 | `core/` | копия ядра, кладётся сборкой `tools/build_max_plugin.py` | нет |
+
+Фаза A (чтение Unity → JSON) не требует Max вообще: это чистый Python из ядра.
+Max нужен только для фазы B, и она рассчитана на запуск в фоне.
 
 ## Правило слоёв
 
