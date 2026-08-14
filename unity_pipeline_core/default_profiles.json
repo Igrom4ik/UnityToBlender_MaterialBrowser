@@ -1,0 +1,18 @@
+{
+  "version": 1,
+  "note": "Conversion rules shipped with the tool. A user file passed in the add-on is matched first; these are the fallback. Properties a profile does not cover are reported as unmapped, never dropped silently.",
+  "profiles": [
+    {
+      "id": "amplify/layered-blend",
+      "note": "Four-layer vertex-colour blend shader (madout2: Custom/Environment/PBR_blend_materials). Blender builds layer 1, the fill layer, and reports layers 2-4 as unmapped: reproducing the height blend needs its own node group (M5). Without this rule the layer that wins the base-colour slot depends on which file name the postfix heuristic reads first, and tiling stays 1:1 because this shader keeps it in _Tile1x/_Tile1y rather than in the texture slot.",
+      "match": {
+        "shader_name": ["Custom/Environment/PBR_blend_materials", ".*PBR_blend_materials"]
+      },
+      "workflow": "metallic",
+      "textures": {
+        "_BaseColor1": {"role": "BASE_COLOR", "scale_from": ["_Tile1x", "_Tile1y"]},
+        "_Normal1": {"role": "NORMAL", "scale_from": ["_Tile1x", "_Tile1y"]}
+      }
+    }
+  ]
+}

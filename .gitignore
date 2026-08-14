@@ -1,0 +1,18 @@
+# The library is a local derived artefact: JSON, previews, .blend and the index
+# are all rebuilt from Unity, and none of it belongs in history (invariant 3).
+/library/
+*.blend
+*.blend1
+_ump_index.json
+_ump_report.json
+_ump_profiles.json
+
+# Vendored copy of the core: written by tools/build_extension.py before packing.
+/unity_material_browser/core/
+
+# Build output.
+/dist/
+
+__pycache__/
+*.pyc
+*.pyo

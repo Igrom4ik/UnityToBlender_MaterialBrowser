@@ -1,0 +1,82 @@
+{
+  "schema": 1,
+  "comment": "Built-in Unity shaders have no source file inside a project. Entries are matched by fileID under Unity's default resources GUID (0000000000000000f000000000000000) or by shader name. Verified against materials in real projects; extend as new cases appear.",
+  "file_ids": {
+    "45": "Standard (Specular setup)",
+    "46": "Standard",
+    "10750": "Sprites/Default",
+    "10770": "UI/Default"
+  },
+  "shaders": {
+    "Standard": {
+      "workflow": "metallic",
+      "properties": [
+        {"name": "_Color", "display": "Color", "type": "COLOR", "default": [1.0, 1.0, 1.0, 1.0], "attributes": ["MAIN_COLOR"]},
+        {"name": "_MainTex", "display": "Albedo", "type": "TEXTURE", "default": "white", "attributes": ["MAIN_TEXTURE"]},
+        {"name": "_Cutoff", "display": "Alpha Cutoff", "type": "RANGE", "default": 0.5, "range": [0.0, 1.0]},
+        {"name": "_Glossiness", "display": "Smoothness", "type": "RANGE", "default": 0.5, "range": [0.0, 1.0]},
+        {"name": "_GlossMapScale", "display": "Smoothness Scale", "type": "RANGE", "default": 1.0, "range": [0.0, 1.0]},
+        {"name": "_SmoothnessTextureChannel", "display": "Smoothness texture channel", "type": "FLOAT", "default": 0.0},
+        {"name": "_Metallic", "display": "Metallic", "type": "RANGE", "default": 0.0, "range": [0.0, 1.0]},
+        {"name": "_MetallicGlossMap", "display": "Metallic", "type": "TEXTURE", "default": "white"},
+        {"name": "_SpecularHighlights", "display": "Specular Highlights", "type": "FLOAT", "default": 1.0, "attributes": ["TOGGLE"]},
+        {"name": "_GlossyReflections", "display": "Glossy Reflections", "type": "FLOAT", "default": 1.0, "attributes": ["TOGGLE"]},
+        {"name": "_BumpScale", "display": "Scale", "type": "FLOAT", "default": 1.0},
+        {"name": "_BumpMap", "display": "Normal Map", "type": "TEXTURE", "default": "bump", "attributes": ["NORMAL"]},
+        {"name": "_Parallax", "display": "Height Scale", "type": "RANGE", "default": 0.02, "range": [0.005, 0.08]},
+        {"name": "_ParallaxMap", "display": "Height Map", "type": "TEXTURE", "default": "black"},
+        {"name": "_OcclusionStrength", "display": "Strength", "type": "RANGE", "default": 1.0, "range": [0.0, 1.0]},
+        {"name": "_OcclusionMap", "display": "Occlusion", "type": "TEXTURE", "default": "white"},
+        {"name": "_EmissionColor", "display": "Color", "type": "COLOR", "default": [0.0, 0.0, 0.0, 1.0], "attributes": ["HDR"]},
+        {"name": "_EmissionMap", "display": "Emission", "type": "TEXTURE", "default": "white"},
+        {"name": "_DetailMask", "display": "Detail Mask", "type": "TEXTURE", "default": "white"},
+        {"name": "_DetailAlbedoMap", "display": "Detail Albedo x2", "type": "TEXTURE", "default": "grey"},
+        {"name": "_DetailNormalMapScale", "display": "Scale", "type": "FLOAT", "default": 1.0},
+        {"name": "_DetailNormalMap", "display": "Normal Map", "type": "TEXTURE", "default": "bump", "attributes": ["NORMAL"]},
+        {"name": "_UVSec", "display": "UV Set for secondary textures", "type": "FLOAT", "default": 0.0},
+        {"name": "_Mode", "display": "Rendering Mode", "type": "FLOAT", "default": 0.0},
+        {"name": "_SrcBlend", "display": "__src", "type": "FLOAT", "default": 1.0, "attributes": ["HIDDEN"]},
+        {"name": "_DstBlend", "display": "__dst", "type": "FLOAT", "default": 0.0, "attributes": ["HIDDEN"]},
+        {"name": "_ZWrite", "display": "__zw", "type": "FLOAT", "default": 1.0, "attributes": ["HIDDEN"]}
+      ]
+    },
+    "Standard (Specular setup)": {
+      "workflow": "specular",
+      "properties": [
+        {"name": "_Color", "display": "Color", "type": "COLOR", "default": [1.0, 1.0, 1.0, 1.0], "attributes": ["MAIN_COLOR"]},
+        {"name": "_MainTex", "display": "Albedo", "type": "TEXTURE", "default": "white", "attributes": ["MAIN_TEXTURE"]},
+        {"name": "_Cutoff", "display": "Alpha Cutoff", "type": "RANGE", "default": 0.5, "range": [0.0, 1.0]},
+        {"name": "_Glossiness", "display": "Smoothness", "type": "RANGE", "default": 0.5, "range": [0.0, 1.0]},
+        {"name": "_GlossMapScale", "display": "Smoothness Scale", "type": "RANGE", "default": 1.0, "range": [0.0, 1.0]},
+        {"name": "_SmoothnessTextureChannel", "display": "Smoothness texture channel", "type": "FLOAT", "default": 0.0},
+        {"name": "_SpecColor", "display": "Specular", "type": "COLOR", "default": [0.2, 0.2, 0.2, 1.0]},
+        {"name": "_SpecGlossMap", "display": "Specular", "type": "TEXTURE", "default": "white"},
+        {"name": "_SpecularHighlights", "display": "Specular Highlights", "type": "FLOAT", "default": 1.0, "attributes": ["TOGGLE"]},
+        {"name": "_GlossyReflections", "display": "Glossy Reflections", "type": "FLOAT", "default": 1.0, "attributes": ["TOGGLE"]},
+        {"name": "_BumpScale", "display": "Scale", "type": "FLOAT", "default": 1.0},
+        {"name": "_BumpMap", "display": "Normal Map", "type": "TEXTURE", "default": "bump", "attributes": ["NORMAL"]},
+        {"name": "_Parallax", "display": "Height Scale", "type": "RANGE", "default": 0.02, "range": [0.005, 0.08]},
+        {"name": "_ParallaxMap", "display": "Height Map", "type": "TEXTURE", "default": "black"},
+        {"name": "_OcclusionStrength", "display": "Strength", "type": "RANGE", "default": 1.0, "range": [0.0, 1.0]},
+        {"name": "_OcclusionMap", "display": "Occlusion", "type": "TEXTURE", "default": "white"},
+        {"name": "_EmissionColor", "display": "Color", "type": "COLOR", "default": [0.0, 0.0, 0.0, 1.0], "attributes": ["HDR"]},
+        {"name": "_EmissionMap", "display": "Emission", "type": "TEXTURE", "default": "white"},
+        {"name": "_Mode", "display": "Rendering Mode", "type": "FLOAT", "default": 0.0}
+      ]
+    },
+    "Sprites/Default": {
+      "workflow": "unlit",
+      "properties": [
+        {"name": "_MainTex", "display": "Sprite Texture", "type": "TEXTURE", "default": "white", "attributes": ["PER_RENDERER_DATA", "MAIN_TEXTURE"]},
+        {"name": "_Color", "display": "Tint", "type": "COLOR", "default": [1.0, 1.0, 1.0, 1.0], "attributes": ["MAIN_COLOR"]}
+      ]
+    },
+    "UI/Default": {
+      "workflow": "unlit",
+      "properties": [
+        {"name": "_MainTex", "display": "Sprite Texture", "type": "TEXTURE", "default": "white", "attributes": ["PER_RENDERER_DATA", "MAIN_TEXTURE"]},
+        {"name": "_Color", "display": "Tint", "type": "COLOR", "default": [1.0, 1.0, 1.0, 1.0], "attributes": ["MAIN_COLOR"]}
+      ]
+    }
+  }
+}

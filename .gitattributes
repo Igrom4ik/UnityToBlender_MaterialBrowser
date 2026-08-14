@@ -1,0 +1,6 @@
+# The add-on ships as a ZIP built on Linux CI and installed on Windows, so line
+# endings stay LF everywhere instead of depending on who cloned the repository.
+* text=auto eol=lf
+*.png binary
+*.blend binary
+*.zip binary

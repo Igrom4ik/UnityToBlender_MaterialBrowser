@@ -1,0 +1,51 @@
+name: Build extension
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          # tomllib, used by the packer, needs 3.11 or newer.
+          python-version: "3.12"
+
+      # The core never imports bpy, so the whole suite runs without Blender.
+      - name: Unit tests
+        run: python -m unittest discover -s tests -p "test_*.py" -v
+
+      - name: Byte-compile
+        run: python -m compileall -q unity_pipeline_core unity_material_browser tools
+
+      - name: Build the zip
+        run: |
+          if [ "${GITHUB_REF_TYPE}" = "tag" ]; then
+            # The tag and the manifest must agree, or the release ships a lie.
+            python tools/build_extension.py --output-dir dist \
+              --expected-version "${GITHUB_REF_NAME#v}"
+          else
+            python tools/build_extension.py --output-dir dist
+          fi
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: unity-material-browser
+          path: dist/*.zip
+
+      - name: Attach the zip to the release
+        if: github.ref_type == 'tag'
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*.zip
+          generate_release_notes: true

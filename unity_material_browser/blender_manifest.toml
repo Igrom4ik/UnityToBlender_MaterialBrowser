@@ -1,0 +1,15 @@
+schema_version = "1.0.0"
+
+id = "unity_material_browser"
+version = "0.12.0"
+name = "Unity Material Browser"
+tagline = "Turn Unity materials into a Blender asset library"
+maintainer = "Igrom4ik"
+type = "add-on"
+
+tags = ["Material", "Pipeline"]
+blender_version_min = "4.2.0"
+license = ["SPDX:GPL-3.0-or-later"]
+
+[permissions]
+files = "Read Unity project folders and write the local material library"
