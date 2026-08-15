@@ -8,6 +8,12 @@ Unity.
 - Как пользоваться: [`docs/USAGE_RU.md`](docs/USAGE_RU.md)
 - Проект системы и принятые решения: [`docs/MATERIAL_BROWSER_RU.md`](docs/MATERIAL_BROWSER_RU.md)
 
+**Версия для 3ds Max** — тот же конвейер поверх того же ядра, только собирает
+библиотеки `.mat` для Material/Map Browser: [`unity_material_max/`](unity_material_max/README.md).
+
+- Как пользоваться: [`docs/MAX_USAGE_RU.md`](docs/MAX_USAGE_RU.md)
+- План переноса и принятые решения: [`docs/MAX_PORT_RU.md`](docs/MAX_PORT_RU.md)
+
 ## Правила, которые аддон не нарушает
 
 1. **Unity только читается.** В проект Unity не пишется ни один файл; никаких

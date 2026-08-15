@@ -6,10 +6,11 @@ and writes `.mat` libraries that the Material/Map Browser opens on its own.
 
 The split repeats the one that keeps the core clean: `recipe.py` is plain
 Python and decides *what* to build, `material_builder.py` and `library_build.py`
-talk to `pymxs` and only carry it out. Everything worth testing therefore runs
-without 3ds Max.
+talk to `pymxs` and only carry it out. `session.py` is the same split applied to
+the window: it decides which step is done and what is missing, `dialog.py` only
+draws it. Everything worth testing therefore runs without 3ds Max.
 """
 
 from __future__ import annotations
 
-__version__ = "0.1.3"
+__version__ = "0.5.4"
