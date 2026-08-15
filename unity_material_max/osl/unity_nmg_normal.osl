@@ -1,0 +1,27 @@
+// Unity `_NMG` packing: the normal is in R and G, metallic in B, gloss in A.
+//
+// The normal's blue channel is therefore gone, and feeding the map to Normal
+// Bump unchanged points every normal wherever metallic happened to be. It is
+// rebuilt the way a tangent-space normal always can be, from the fact that the
+// vector is unit length: z = sqrt(1 - x^2 - y^2).
+//
+// The result is re-encoded to 0..1 so it stays an ordinary normal map, and
+// Normal Bump keeps doing its own job on top.
+
+shader UnityNMGNormal
+[[
+    string help = "Rebuilds the blue channel of a normal map packed as _NMG",
+    string category = "Unity"
+]]
+(
+    color Packed = color(0.5, 0.5, 1.0)
+    [[ string label = "Packed Normal" ]],
+
+    output color Out = color(0.5, 0.5, 1.0)
+)
+{
+    float x = Packed[0] * 2.0 - 1.0;
+    float y = Packed[1] * 2.0 - 1.0;
+    float z = sqrt(max(0.0, 1.0 - x * x - y * y));
+    Out = color(Packed[0], Packed[1], z * 0.5 + 0.5);
+}

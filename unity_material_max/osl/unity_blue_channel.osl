@@ -1,0 +1,20 @@
+// The blue channel of a packed map on its own, as grey.
+//
+// Unity keeps metallic in the blue channel of an `_NMG` map. A Physical
+// Material metalness slot reads a map as mono, and no stock 3ds Max map picks
+// one channel without also weighting it, which would quietly scale metallic.
+
+shader UnityBlueChannel
+[[
+    string help = "Blue channel of a packed map, as a grey value",
+    string category = "Unity"
+]]
+(
+    color Packed = color(0.0, 0.0, 0.0)
+    [[ string label = "Packed" ]],
+
+    output color Out = color(0.0, 0.0, 0.0)
+)
+{
+    Out = color(Packed[2]);
+}
