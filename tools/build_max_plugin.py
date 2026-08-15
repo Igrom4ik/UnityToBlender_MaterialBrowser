@@ -30,6 +30,9 @@ INSTALLER_FILES = (
     "install.ms",
     "UnityMaterialBrowser.mcr",
     "unity_material_browser_startup.ms",
+    # Executed by the macro on every click, so an updated plugin does not wait
+    # for the next restart of 3ds Max.
+    "unity_material_browser_launch.py",
 )
 
 EXCLUDED_PARTS = {"__pycache__", ".git"}
@@ -46,6 +49,10 @@ Copy both folders next to each other into a scripts folder 3ds Max reads, for
 example:
 
     %LOCALAPPDATA%\\Autodesk\\3dsMax\\<version>\\ENU\\scripts\\
+
+After a restart the menu "Unity Materials" opens a window with four steps:
+the library folder, scanning Unity, building the .mat files and opening them
+in the Material Editor. Each step states what it needs and what it found.
 
 Build the libraries without opening the interface:
 

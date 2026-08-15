@@ -86,6 +86,8 @@
 
         report = "Unity Material Browser installed.\n\n"
         report += "Restart 3ds Max: the menu \"Unity Materials\" appears in the main menu bar.\n"
+        report += "It opens a window with the four steps: library folder, scan Unity,\n"
+        report += "build .mat, open them in the Material Editor.\n"
         report += "It is also in Customize > Toolbars, category \"Unity Material Browser\".\n\n"
         report += "Scripts: " + scriptDir + "\n"
         report += "Log:     " + logPath
