@@ -86,5 +86,123 @@ class RecipeTests(unittest.TestCase):
         self.assertEqual(len(slots), len(set(slots)))
 
 
+class PackedChannelTests(unittest.TestCase):
+    """Channel packing, taken apart exactly as the Blender front-end does."""
+
+    def plan(self, **overrides) -> profiles.ConversionPlan:
+        plan = profiles.ConversionPlan(shader_name="Custom/PBR_Packed_Alpha")
+        for key, value in overrides.items():
+            setattr(plan, key, value)
+        return plan
+
+    def texture(self, name: str, role: str, path: str, packing: str, **overrides):
+        return profiles.TexturePlan(
+            property_name=name,
+            role=role,
+            image_path=path,
+            colorspace="Non-Color" if role == profiles.NORMAL_MAP else "sRGB",
+            is_normal=role == profiles.NORMAL_MAP,
+            packing=packing,
+            **overrides,
+        )
+
+    def test_nmg_becomes_a_normal_a_metalness_and_a_roughness(self):
+        # Unity packs the normal into RG, metallic into B and gloss into A.
+        # Hanging the file on the normal slot alone loses two of the three and
+        # points every normal wherever metallic happened to be.
+        plan = self.plan(
+            textures=[
+                self.texture(
+                    "_Normals", profiles.NORMAL_MAP, "D:/T_Fence_NMG.tif", profiles.PACK_NMG
+                )
+            ]
+        )
+        recipe = max_recipe.recipe_from_plan(plan, "M_Fence")
+
+        bump = recipe.maps[max_recipe.BUMP_MAP]
+        self.assertTrue(bump.unpack_z)
+        self.assertEqual(bump.gamma, max_recipe.GAMMA_LINEAR)
+
+        metalness = recipe.channels[max_recipe.METALNESS_MAP]
+        self.assertEqual(metalness.channel, max_recipe.CHANNEL_BLUE)
+        self.assertEqual(metalness.source.path, "D:/T_Fence_NMG.tif")
+
+        roughness = recipe.channels[max_recipe.ROUGHNESS_MAP]
+        self.assertEqual(roughness.channel, max_recipe.CHANNEL_INV_ALPHA)
+
+    def test_gloss_scale_is_applied_before_the_inversion(self):
+        # Unity multiplies the gloss map by _GlossMapScale and then inverts, so
+        # a scaled map does not come out at full gloss.
+        plan = self.plan(
+            smoothness_scale=0.5,
+            textures=[
+                self.texture(
+                    "_Normals", profiles.NORMAL_MAP, "D:/T_Fence_NMG.tif", profiles.PACK_NMG
+                )
+            ],
+        )
+        recipe = max_recipe.recipe_from_plan(plan, "M_Fence")
+        self.assertEqual(recipe.channels[max_recipe.ROUGHNESS_MAP].scale, 0.5)
+
+    def test_bca_alpha_is_a_cutout(self):
+        plan = self.plan(
+            textures=[
+                self.texture(
+                    "_Albedo", profiles.BASE_COLOR, "D:/T_Fence_BCA.tif", profiles.PACK_BCA
+                )
+            ]
+        )
+        recipe = max_recipe.recipe_from_plan(plan, "M_Fence")
+        cutout = recipe.channels[max_recipe.CUTOUT_MAP]
+        self.assertEqual(cutout.channel, max_recipe.CHANNEL_ALPHA)
+        self.assertEqual(cutout.source.path, "D:/T_Fence_BCA.tif")
+
+    def test_albedo_alpha_that_holds_smoothness_is_not_a_cutout(self):
+        # The channel switch decides: the same alpha is opacity in one shader
+        # and smoothness in the next, and guessing makes a fence transparent.
+        plan = self.plan(
+            smoothness_from_albedo_alpha=True,
+            textures=[
+                self.texture(
+                    "_Albedo", profiles.BASE_COLOR, "D:/T_Fence_BCA.tif", profiles.PACK_BCA
+                )
+            ],
+        )
+        recipe = max_recipe.recipe_from_plan(plan, "M_Fence")
+        self.assertNotIn(max_recipe.CUTOUT_MAP, recipe.channels)
+        self.assertEqual(
+            recipe.channels[max_recipe.ROUGHNESS_MAP].channel, max_recipe.CHANNEL_INV_ALPHA
+        )
+
+    def test_a_texture_of_its_own_beats_an_unpacked_channel(self):
+        plan = self.plan(
+            textures=[
+                self.texture(
+                    "_Normals", profiles.NORMAL_MAP, "D:/T_Fence_NMG.tif", profiles.PACK_NMG
+                ),
+                self.texture(
+                    "_MetallicGloss",
+                    profiles.METALLIC_GLOSS,
+                    "D:/T_Fence_MG.tif",
+                    profiles.PACK_NONE,
+                ),
+            ]
+        )
+        recipe = max_recipe.recipe_from_plan(plan, "M_Fence")
+        self.assertEqual(recipe.maps[max_recipe.METALNESS_MAP].path, "D:/T_Fence_MG.tif")
+        self.assertNotIn(max_recipe.METALNESS_MAP, recipe.channels)
+
+    def test_what_is_reproduced_is_no_longer_reported_as_missing(self):
+        plan = self.plan(
+            textures=[
+                self.texture(
+                    "_Normals", profiles.NORMAL_MAP, "D:/T_Fence_NMG.tif", profiles.PACK_NMG
+                )
+            ]
+        )
+        recipe = max_recipe.recipe_from_plan(plan, "M_Fence")
+        self.assertFalse([note for note in recipe.notes if "_NMG" in note])
+
+
 if __name__ == "__main__":
     unittest.main()

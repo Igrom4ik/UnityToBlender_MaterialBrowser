@@ -42,6 +42,12 @@ _ROLE_TO_SLOT = {
 }
 
 
+# A channel of a packed bitmap, taken apart the way Unity packed it.
+CHANNEL_BLUE = "blue"
+CHANNEL_ALPHA = "alpha"
+CHANNEL_INV_ALPHA = "inv_alpha"
+
+
 @dataclass(frozen=True)
 class BitmapRecipe:
     path: str
@@ -50,6 +56,18 @@ class BitmapRecipe:
     offset: tuple[float, float] = (0.0, 0.0)
     is_normal: bool = False
     """Goes into a Normal Bump map rather than straight into the slot."""
+    unpack_z: bool = False
+    """`_NMG`: blue holds metallic, so the normal's Z has to be rebuilt."""
+
+
+@dataclass(frozen=True)
+class ChannelRecipe:
+    """One channel of a packed bitmap, on its way to a scalar slot."""
+
+    source: BitmapRecipe
+    channel: str
+    scale: float = 1.0
+    """`_GlossMapScale`, applied before the inversion, exactly as Unity does."""
 
 
 @dataclass
@@ -65,6 +83,7 @@ class MaterialRecipe:
     # recipe always states it.
     bump_amount: float = 1.0
     maps: dict[str, BitmapRecipe] = field(default_factory=dict)
+    channels: dict[str, ChannelRecipe] = field(default_factory=dict)
     notes: list[str] = field(default_factory=list)
     unity_guid: str = ""
     unity_path: str = ""
@@ -97,25 +116,39 @@ def recipe_from_plan(plan, name: str, *, guid: str = "", unity_path: str = "") -
             recipe.notes.append(f"{texture.property_name}: {slot} is already taken")
             continue
 
-        recipe.maps[slot] = BitmapRecipe(
+        bitmap = BitmapRecipe(
             path=texture.image_path,
             gamma=GAMMA_SRGB if texture.colorspace == "sRGB" else GAMMA_LINEAR,
             tiling=tuple(texture.scale),
             offset=tuple(texture.offset),
             is_normal=texture.is_normal,
+            # `_NMG` put metallic where the normal's blue belongs, so the map
+            # cannot go into Normal Bump as it is.
+            unpack_z=texture.packing == profiles.PACK_NMG,
         )
+        recipe.maps[slot] = bitmap
 
-        # Packed maps carry more than one channel of meaning, and splitting them
-        # is a node chain rather than a slot assignment (M2).
+        # A packed map means several channels of meaning in one file, and each
+        # one lands in a slot of its own.
         if texture.packing == profiles.PACK_NMG:
-            recipe.notes.append(
-                f"{texture.property_name}: _NMG packs normal, metallic and gloss; "
-                "only the normal is wired up so far"
+            recipe.channels[METALNESS_MAP] = ChannelRecipe(bitmap, CHANNEL_BLUE)
+            recipe.channels[ROUGHNESS_MAP] = ChannelRecipe(
+                bitmap, CHANNEL_INV_ALPHA, plan.smoothness_scale
             )
-        elif texture.packing == profiles.PACK_BCA:
-            recipe.notes.append(
-                f"{texture.property_name}: alpha is transparency; cutout is not wired up yet"
-            )
+        elif slot == BASE_COLOR_MAP:
+            if plan.smoothness_from_albedo_alpha:
+                # The channel switch says the albedo alpha is smoothness, so it
+                # is not opacity and must not become a cutout.
+                recipe.channels[ROUGHNESS_MAP] = ChannelRecipe(
+                    bitmap, CHANNEL_INV_ALPHA, plan.smoothness_scale
+                )
+            elif texture.packing == profiles.PACK_BCA:
+                recipe.channels[CUTOUT_MAP] = ChannelRecipe(bitmap, CHANNEL_ALPHA)
+            elif texture.packing == profiles.PACK_BCH:
+                recipe.notes.append(
+                    f"{texture.property_name}: _BCH keeps height in alpha; "
+                    "Physical Material has no height slot"
+                )
 
     occlusion = plan.texture_for(profiles.OCCLUSION)
     if occlusion is not None:
@@ -129,6 +162,12 @@ def recipe_from_plan(plan, name: str, *, guid: str = "", unity_path: str = "") -
         )
     for name_ in plan.unmapped:
         recipe.notes.append(f"{name_}: unmapped by the conversion plan")
+
+    # A texture of its own always beats a channel unpacked from another map:
+    # the packed one is a stand-in for exactly the case where it is missing.
+    for slot in list(recipe.channels):
+        if slot in recipe.maps:
+            del recipe.channels[slot]
 
     return recipe
 
