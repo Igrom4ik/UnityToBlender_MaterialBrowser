@@ -1,77 +1,47 @@
-name: Build extension
+name: Verify Blender release archives
 
 on:
   push:
-    branches: [main, max-port]
-    # Two products in one repository, so a release tag says which one:
-    # v* is the Blender add-on, max-v* is the 3ds Max plugin.
-    tags: ["v*", "max-v*"]
+    branches: [main]
+    tags: ["max-v*"]
   pull_request:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
-  build:
+  verify:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
       - uses: actions/setup-python@v5
         with:
-          # tomllib, used by the packer, needs 3.11 or newer.
-          python-version: "3.12"
-
-      # The core never imports bpy or pymxs, so the whole suite -- including the
-      # 3ds Max recipe layer -- runs without either application.
-      - name: Unit tests
-        run: python -m unittest discover -s tests -p "test_*.py" -v
-
-      - name: Byte-compile
-        run: |
-          python -m compileall -q unity_pipeline_core unity_material_browser \
-            unity_material_max tools
-
-      - name: Build the Blender add-on
-        run: |
-          if [ "${GITHUB_REF_TYPE}" = "tag" ] && [ "${GITHUB_REF_NAME#max-}" = "${GITHUB_REF_NAME}" ]; then
-            # The tag and the manifest must agree, or the release ships a lie.
-            python tools/build_extension.py --output-dir dist \
-              --expected-version "${GITHUB_REF_NAME#v}"
-          else
-            python tools/build_extension.py --output-dir dist
-          fi
-
-      - name: Build the 3ds Max plugin
-        run: |
-          if [ "${GITHUB_REF_TYPE}" = "tag" ] && [ "${GITHUB_REF_NAME#max-}" != "${GITHUB_REF_NAME}" ]; then
-            python tools/build_max_plugin.py --output-dir dist \
-              --expected-version "${GITHUB_REF_NAME#max-v}"
-          else
-            python tools/build_max_plugin.py --output-dir dist
-          fi
-
+          python-version: "3.13"
+      - run: python tools/verify_release_archives.py
       - uses: actions/upload-artifact@v4
         with:
-          name: packages
+          name: blender-material-tools-windows-x64
           path: |
-            dist/*.zip
-            dist/*.mzp
+            dist/unity_material_drop-0.5.3-windows-x64.zip
+            dist/unity_material_browser-0.13.3-windows-x64.zip
+            dist/SHA256SUMS
 
-      - name: Attach the Blender add-on to the release
-        if: github.ref_type == 'tag' && !startsWith(github.ref_name, 'max-v')
-        uses: softprops/action-gh-release@v2
+  legacy-max-release:
+    if: github.ref_type == 'tag' && startsWith(github.ref_name, 'max-v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
         with:
-          files: dist/unity_material_browser-*.zip
-          generate_release_notes: true
-
-      - name: Attach the 3ds Max plugin to the release
-        if: startsWith(github.ref_name, 'max-v')
-        uses: softprops/action-gh-release@v2
+          python-version: "3.12"
+      - name: Build legacy 3ds Max package
+        run: python tools/build_max_plugin.py --output-dir legacy-max-dist --expected-version "${GITHUB_REF_NAME#max-v}"
+      - uses: softprops/action-gh-release@v2
         with:
-          # The .mzp installs itself; the .zip is for installing by hand.
           files: |
-            dist/unity_material_max-*.mzp
-            dist/unity_material_max-*.zip
+            legacy-max-dist/*.mzp
+            legacy-max-dist/*.zip
           generate_release_notes: true

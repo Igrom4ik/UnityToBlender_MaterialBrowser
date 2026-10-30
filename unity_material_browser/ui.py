@@ -13,7 +13,7 @@ import bpy
 from bpy.types import Menu, Panel, UIList
 
 from . import properties, registration
-from .core import extract
+from ._core import extract
 from .localization import property_name as pn, text as lt
 from .node_builder import NODE_PREFIX
 
@@ -374,6 +374,9 @@ class UMB_PT_Browse(_Base):
             text=lt("Open Asset Browser", "Открыть браузер ассетов"),
             icon="ASSET_MANAGER",
         )
+
+        layout.operator("umb.prepare_golden_gate_openings",
+                        text=lt("Prepare window openings", "Подготовить проёмы окон"), icon="UV")
 
         steps = layout.box()
         steps.scale_y = 0.9

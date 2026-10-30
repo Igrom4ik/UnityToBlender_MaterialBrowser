@@ -11,7 +11,7 @@ from pathlib import Path
 
 import bpy
 
-from .core import profiles
+from ._core import profiles
 
 
 NODE_PREFIX = "UMB"
@@ -168,8 +168,29 @@ def _build_packed_normal(tree, principled, node, plan, row: int) -> None:
     _link(tree, normal_map.outputs["Normal"], _socket(principled, "Normal"))
 
 
-def build_material(material, plan, *, metadata: dict | None = None):
+def build_material(material, plan, *, metadata: dict | None = None, document: dict | None = None):
     """Rebuild `material` from scratch following `plan`."""
+    from . import environment_unlit_adapter
+    if environment_unlit_adapter.supports(document):
+        return environment_unlit_adapter.build(material, document, metadata)
+    from . import golden_gate_window
+    if golden_gate_window.supports(document):
+        return golden_gate_window.build(material, document, metadata)
+    from .window_shader_adapter import build_window
+    if document and build_window(material, plan, document, metadata):
+        return material
+    from .fake_stairs_adapter import build_fake_stairs
+    if document and build_fake_stairs(material, plan, document, metadata):
+        return material
+    from . import shader_adapter
+    if shader_adapter.supports(document):
+        return shader_adapter.build(material, document, NODE_PREFIX, metadata)
+    from . import packed_shader_adapter
+    if packed_shader_adapter.supports(document):
+        return packed_shader_adapter.build(material, document, NODE_PREFIX, metadata)
+    if getattr(plan, "vertex_paint", None):
+        from .vertex_paint_builder import build
+        return build(material, plan, NODE_PREFIX, metadata)
     _clear_tree(material)
     tree = material.node_tree
 
@@ -278,6 +299,13 @@ def build_material(material, plan, *, metadata: dict | None = None):
             _link(tree, node.outputs["Color"], normal_map.inputs["Color"])
             _link(tree, normal_map.outputs["Normal"], _socket(principled, "Normal"))
 
+        elif texture.role == profiles.METALLIC_GLOSS and texture.channel == "smoothness:r":
+            separate = _new(
+                tree, "ShaderNodeSeparateColor", "Smoothness Channels", (_COLUMN_HELPER, row + 320)
+            )
+            _link(tree, node.outputs["Color"], separate.inputs["Color"])
+            _connect_smoothness(tree, principled, separate.outputs["Red"], plan, row)
+
         elif texture.role == profiles.METALLIC_GLOSS:
             separate = _new(
                 tree, "ShaderNodeSeparateColor", "Metallic Channels", (_COLUMN_HELPER, row + 320)
@@ -348,6 +376,12 @@ def build_material(material, plan, *, metadata: dict | None = None):
             _link(tree, base_color_alpha, clip.inputs[0])
             _link(tree, clip.outputs[0], _socket(principled, "Alpha"))
         else:
+            if abs(plan.alpha - 1.0) > 1e-6:
+                alpha_scale = _new(tree, "ShaderNodeMath", "Alpha Tint", (_COLUMN_MIX, -160))
+                alpha_scale.operation = "MULTIPLY"
+                alpha_scale.inputs[1].default_value = plan.alpha
+                _link(tree, base_color_alpha, alpha_scale.inputs[0])
+                base_color_alpha = alpha_scale.outputs[0]
             _link(tree, base_color_alpha, _socket(principled, "Alpha"))
 
     _apply_render_method(material, plan)

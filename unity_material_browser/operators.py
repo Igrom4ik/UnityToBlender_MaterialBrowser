@@ -18,7 +18,7 @@ from bpy.props import BoolProperty, EnumProperty, IntProperty, StringProperty
 from bpy.types import Operator
 
 from . import library_build, properties, registration
-from .core import extract, sync
+from ._core import extract, sync
 from .localization import LocalizedDescription, text as lt
 
 
@@ -768,7 +768,7 @@ class UMB_OT_OpenLibraryFolder(LocalizedDescription, Operator):
 def _rebuild_one(material, library_root: Path, rules, trust_all_tints: bool) -> str:
     """Rebuild a material that came from the library, in place."""
     from . import library_build, node_builder
-    from .core import material_json, profiles
+    from ._core import material_json, profiles
 
     relative = material.get("ump_json", "")
     document = material_json.read_document(library_root / relative) if relative else None
@@ -785,7 +785,7 @@ def _rebuild_one(material, library_root: Path, rules, trust_all_tints: bool) -> 
 
     plan = profiles.build_plan(document, None, rules, trust_all_tints)
     node_builder.build_material(
-        material, plan, metadata=library_build._metadata(document, plan, relative)
+        material, plan, metadata=library_build._metadata(document, plan, relative), document=document
     )
     return ""
 
@@ -811,7 +811,7 @@ class UMB_OT_RebuildSceneMaterials(LocalizedDescription, Operator):
         return bool(preferences and preferences.library_path.strip())
 
     def execute(self, context):
-        from .core import profiles
+        from ._core import profiles
 
         preferences = properties.get_preferences(context)
         state = properties.get_state(context)
@@ -951,7 +951,11 @@ def _fill_report_rows(state, report: dict) -> None:
             row.status = "ERROR"
 
 
+from .golden_gate_openings import UMB_OT_PrepareGoldenGateOpenings
+
+
 CLASSES = (
+    UMB_OT_PrepareGoldenGateOpenings,
     UMB_OT_AddSource,
     UMB_OT_AddFolders,
     UMB_OT_RemoveSource,

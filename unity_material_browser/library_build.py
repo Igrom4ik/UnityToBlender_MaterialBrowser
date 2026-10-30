@@ -18,7 +18,7 @@ import uuid
 import bpy
 
 from . import node_builder, preview
-from .core import extract, material_json, profiles
+from ._core import extract, material_json, profiles
 
 
 CATALOG_FILE = "blender_assets.cats.txt"
@@ -213,7 +213,7 @@ def build_steps(
             material = bpy.data.materials.new(entry.get("asset_name") or entry["name"])
             try:
                 node_builder.build_material(
-                    material, plan, metadata=_metadata(document, plan, entry["json"])
+                    material, plan, metadata=_metadata(document, plan, entry["json"]), document=document
                 )
                 _mark_asset(material, document, plan)
             except Exception as error:  # keep building the rest of the library
