@@ -14,7 +14,7 @@ import json
 import os
 from pathlib import Path
 
-from . import texture_meta
+from . import texture_meta, color_space
 from .shader_parser import ShaderInterface
 from .shader_parser.interface import CONFIDENCE_NONE, MAIN_COLOR, TEXTURE
 
@@ -97,6 +97,32 @@ def _shader_block(material, interface: ShaderInterface, assets_root) -> dict:
     }
 
 
+def _output_uses(interface: ShaderInterface):
+    """Invert the shader's output bindings into per-property records.
+
+    The interface says "Albedo is fed by these"; the document needs "this
+    property feeds Albedo", because that is the direction every later question
+    is asked from.
+    """
+    textures: dict[str, tuple[list[str], str]] = {}
+    scalars: dict[str, list[str]] = {}
+    colors: dict[str, list[str]] = {}
+    for binding in getattr(interface, "outputs", ()) or ():
+        for use in binding.textures:
+            outputs, swizzle = textures.setdefault(use.property_name, ([], use.swizzle))
+            if binding.output not in outputs:
+                outputs.append(binding.output)
+        for name in binding.scalars:
+            entry = scalars.setdefault(name, [])
+            if binding.output not in entry:
+                entry.append(binding.output)
+        for name in binding.colors:
+            entry = colors.setdefault(name, [])
+            if binding.output not in entry:
+                entry.append(binding.output)
+    return textures, scalars, colors
+
+
 def build_effective(material, interface: ShaderInterface) -> dict:
     """Merge material values over shader defaults and separate stale entries."""
     known = interface.by_name
@@ -109,6 +135,12 @@ def build_effective(material, interface: ShaderInterface) -> dict:
     ints: dict[str, dict] = {}
     stale: list[str] = []
 
+    # Which surface output every property reaches, read from the shader body.
+    # Recorded as the plain fact rather than as a decision: this document is a
+    # record of what Unity holds, and choosing a Blender role from it belongs to
+    # `profiles`, which is where every other mapping decision lives.
+    texture_outputs, scalar_outputs, color_outputs = _output_uses(interface)
+
     for texture in material.textures:
         name = texture.property_name
         if resolved_shader and name not in known:
@@ -117,6 +149,10 @@ def build_effective(material, interface: ShaderInterface) -> dict:
         if resolved_shader and known[name].is_hidden:
             continue
         textures[name] = {"origin": ORIGIN_MATERIAL, "guid": texture.guid}
+        use = texture_outputs.get(name)
+        if use is not None:
+            textures[name]["outputs"] = list(use[0])
+            textures[name]["swizzle"] = use[1]
 
     for name, value in material.floats.items():
         if resolved_shader and name not in known:
@@ -167,7 +203,22 @@ def build_effective(material, interface: ShaderInterface) -> dict:
     # What the shader says about each colour travels with the document: phase B
     # rebuilds from JSON alone and has no interface to ask (3.1), so without this
     # a proven tint would look exactly like a guessed one.
+    # Two colours multiplied into the albedo is a formula, not a tint, and
+    # picking one of them would be exactly the guess this pipeline avoids.
+    proven_tints = tuple(getattr(interface, "albedo_colors", ()) or ())
+    albedo_colors = (
+        {proven_tints[0].casefold()} if len(proven_tints) == 1 else set()
+    )
+    for name, entry in floats.items():
+        outputs = scalar_outputs.get(name)
+        if outputs:
+            entry["outputs"] = list(outputs)
     for name, entry in colors.items():
+        if name.casefold() in albedo_colors:
+            entry["albedo_tint"] = True
+        outputs = color_outputs.get(name)
+        if outputs:
+            entry["outputs"] = list(outputs)
         item = known.get(name)
         if item is None:
             continue
@@ -175,6 +226,13 @@ def build_effective(material, interface: ShaderInterface) -> dict:
             entry["main_color"] = True
         if item.group:
             entry["group"] = item.group
+
+    for category in (colors, floats, ints):
+        for name, entry in category.items():
+            item = known.get(name)
+            if item is not None:
+                entry["property_type"] = item.type
+                entry["attributes"] = list(item.attributes)
 
     return {
         "textures": textures,
@@ -234,6 +292,7 @@ def build_document(
             "extracted_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
             "extractor": "yaml",
             "texture_deps": texture_deps,
+            "color_space": color_space.project_settings(material.asset_path),
         },
         "shader": _shader_block(material, interface, assets_root),
         "material": {

@@ -223,7 +223,10 @@ def build_steps(
                 continue
 
             if generate_previews and previews_available:
-                rendered = preview.generate(material, _preview_path(root, entry))
+                preview_path = _preview_path(root, entry)
+                rendered = preview.render_to_file(material, preview_path)
+                if rendered:
+                    preview.apply_from_file(material, preview_path)
                 if not rendered:
                     # One failure means the renderer is unavailable here; do not
                     # pay the cost for every remaining material.

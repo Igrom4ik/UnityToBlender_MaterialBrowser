@@ -1,14 +1,14 @@
 schema_version = "1.0.0"
 
 id = "unity_material_browser"
-version = "0.13.3"
+version = "0.13.6"
 name = "Unity Material Browser"
 tagline = "Turn Unity materials into a Blender asset library"
 maintainer = "Igrom4ik"
 type = "add-on"
 
 tags = ["Material", "Pipeline"]
-blender_version_min = "5.2.0"
+blender_version_min = "4.2.0"
 license = ["SPDX:GPL-3.0-or-later"]
 
 [permissions]

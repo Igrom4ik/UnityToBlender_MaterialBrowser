@@ -2,7 +2,12 @@
 
 Covers hand written CG/HLSL shaders and generated ones alike: Amplify Shader
 Editor emits an ordinary ShaderLab container, so no dedicated backend is needed.
-Only the interface is extracted -- the shader body is never interpreted.
+
+The Properties block gives the interface; `dataflow` reads the body for what
+the interface cannot say -- which property ends up in which surface output.
+A property name is a convention any custom shader is free to ignore, and the
+assignments to `o.Albedo`, `o.Normal` and the rest are where a shader states
+what it really does.
 """
 
 from __future__ import annotations
@@ -11,6 +16,7 @@ import hashlib
 from pathlib import Path
 import re
 
+from . import dataflow
 from .interface import (
     COLOR,
     CONFIDENCE_FULL,
@@ -307,6 +313,18 @@ def parse_text(text: str, source_path: Path | None = None) -> ShaderInterface:
         confidence=confidence,
         properties=properties,
         keywords=_collect_keywords(cleaned),
+        outputs=dataflow.analyze(
+            cleaned,
+            textures={item.name for item in properties if item.type == TEXTURE},
+            colors={
+                item.name
+                for item in properties
+                if item.type in (COLOR, VECTOR) and not item.is_hidden
+            },
+            scalars={
+                item.name for item in properties if item.type in (FLOAT, RANGE, INT)
+            },
+        ),
         source_path=source_path,
         source_hash=hashlib.sha1(text.encode("utf-8", "replace")).hexdigest(),
         notes=tuple(notes),

@@ -581,7 +581,9 @@ def _write_state(state, preferences, results, assets_root, context) -> None:
         or not item.conversion.shader_resolved
         for item in results
     )
-    if broken:
+    if not results:
+        properties.set_status(state, "Material build failed", "Не удалось собрать материал", "ERROR")
+    elif broken:
         properties.set_status(
             state,
             "Material built with gaps -- see the report",

@@ -61,9 +61,12 @@ def _socket(node, *names):
 
 def _load_image(path: str, colorspace: str):
     try:
-        image = bpy.data.images.load(path, check_existing=True)
+        from unity_pipeline_core.image_source import resolve
+        image = bpy.data.images.load(resolve(path), check_existing=True)
     except RuntimeError:
         return None
+    if image.colorspace_settings.name != colorspace:
+        image = image.copy()
     try:
         image.colorspace_settings.name = colorspace
     except TypeError:
@@ -175,12 +178,28 @@ def _build_packed_normal(tree, principled, node, plan, row: int) -> None:
 
 def build_material(material, plan, *, metadata: dict | None = None, document: dict | None = None):
     """Rebuild `material` from scratch following `plan`."""
+    from unity_pipeline_core.color_space import shader_document, VERSION
+    from unity_pipeline_core.image_source import shader_images
+    document = shader_images(shader_document(document))
+    metadata = dict(metadata or {})
+    metadata["umd_image_source_version"] = 1
+    metadata["umd_color_space_version"] = VERSION
+    metadata["umd_color_space"] = (document or {}).get("source", {}).get("color_space", {}).get("space", "Unknown")
+    from . import custom_unlit_urp_adapter
+    if custom_unlit_urp_adapter.supports(document):
+        return custom_unlit_urp_adapter.build(material, document, metadata)
+    from . import interior_mapping_adapter
+    if interior_mapping_adapter.supports(document):
+        return interior_mapping_adapter.build(material, document, NODE_PREFIX, metadata)
     from . import environment_unlit_adapter
     if environment_unlit_adapter.supports(document):
         return environment_unlit_adapter.build(material, document, metadata)
     from . import golden_gate_window
     if golden_gate_window.supports(document):
         return golden_gate_window.build(material, document, metadata)
+    from .window_urp_adapter import build_window as build_window_urp
+    if document and build_window_urp(material, plan, document, metadata):
+        return material
     from .window_shader_adapter import build_window
     if document and build_window(material, plan, document, metadata):
         return material
@@ -394,15 +413,13 @@ def build_material(material, plan, *, metadata: dict | None = None, document: di
                 alpha_scale.inputs[1].default_value = plan.alpha
                 _link(tree, base_color_alpha, alpha_scale.inputs[0])
                 base_color_alpha = alpha_scale.outputs[0]
-            if abs(plan.alpha - 1.0) > 1e-6:
-                alpha_scale = _new(tree, "ShaderNodeMath", "Alpha Tint", (_COLUMN_MIX, -160))
-                alpha_scale.operation = "MULTIPLY"
-                alpha_scale.inputs[1].default_value = plan.alpha
-                _link(tree, base_color_alpha, alpha_scale.inputs[0])
-                base_color_alpha = alpha_scale.outputs[0]
             _link(tree, base_color_alpha, _socket(principled, "Alpha"))
 
     _apply_render_method(material, plan)
+
+    from . import lit_blenduvw2_adapter
+    if lit_blenduvw2_adapter.supports(document):
+        lit_blenduvw2_adapter.apply(material, document)
 
     for key, value in (metadata or {}).items():
         material[key] = value

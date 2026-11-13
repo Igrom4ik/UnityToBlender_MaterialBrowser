@@ -1,14 +1,14 @@
 schema_version = "1.0.0"
 
 id = "unity_material_drop"
-version = "0.5.3"
+version = "0.5.6"
 name = "Unity Material Drop"
 tagline = "Drag a Unity .mat onto an object to build the material"
 maintainer = "Igrom4ik"
 type = "add-on"
 
 tags = ["Material", "Pipeline", "Import-Export"]
-blender_version_min = "5.2.0"
+blender_version_min = "4.2.0"
 license = ["SPDX:GPL-3.0-or-later"]
 
 [permissions]

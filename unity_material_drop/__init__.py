@@ -18,9 +18,9 @@ from __future__ import annotations
 from importlib import import_module
 
 
-__version__ = "0.5.3"
+__version__ = "0.5.6"
 
-_MODULES = ("properties", "operators", "drop", "tiling", "vertex_paint", "ui")
+_MODULES = ("properties", "operators", "drop", "tiling", "vertex_paint", "ui", "unity_offset_preview")
 
 
 def _module(name):

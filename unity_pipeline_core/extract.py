@@ -236,6 +236,7 @@ def extract_steps(request: ExtractRequest) -> Iterator[ExtractProgress]:
             "absolute_path": str(material_path),
             "source_hash": document["source"]["hash"],
             "texture_deps": document["source"]["texture_deps"],
+            "color_space": document["source"]["color_space"],
             "texture_paths": {
                 texture.guid: str(texture.asset_path)
                 for texture in material.textures

@@ -4,10 +4,13 @@ Unity Standard BRDF, specular workflow and indirect AO remain approximations.
 import bpy
 from pathlib import Path
 SHADERS={"Custom/PBR_Packed_Alpha","Custom/PBR_PackedTextures","Custom/Diffuse Bump Spec","Custom/Diffuse Spec","Custom/Diffuse Surface Material","Custom/Diffuse Blend 2 Textures"}
+VERSION = "project-packed-formulas/5"
 
 def supports(document):return bool(document and document.get("shader",{}).get("name") in SHADERS)
 
 def build(mat,document,prefix="UMD",metadata=None):
+    from unity_pipeline_core.color_space import shader_document
+    document = shader_document(document)
     shader=document["shader"]["name"];raw=document.get("material",{});effective=document.get("effective",{})
     def val(k,d=0):
         for category in ("floats","ints","colors"):
@@ -26,6 +29,8 @@ def build(mat,document,prefix="UMD",metadata=None):
     for k in relevant.intersection(textures):
         p=textures[k].get("absolute_path")
         if not p or not Path(bpy.path.abspath(p)).is_file():
+            if shader == "Custom/PBR_Packed_Alpha" and k == "_Albedo":
+                continue  # Unity uses the shader's white default when the reference is missing.
             if shader == "Custom/Diffuse Bump Spec" and k == "_BumpMap":
                 missing_normal = textures[k].get("guid", "") or "unresolved"
                 continue
@@ -48,11 +53,14 @@ def build(mat,document,prefix="UMD",metadata=None):
                 assign(a[:3] if isinstance(a,(tuple,list)) else a,n.inputs[0]);assign(b[:3] if isinstance(b,(tuple,list)) else b,n.inputs[1]);return n.outputs[0]
             return vectorop("ADD",vectorop("MULTIPLY",a,op("SUBTRACT",1,t)),vectorop("MULTIPLY",b,t))
         n=node("ShaderNodeMixRGB",label);n.blend_type=operation;n.use_clamp=clamp;assign(t,n.inputs[0]);assign(a,n.inputs[1]);assign(b,n.inputs[2]);return n.outputs[0]
-    def color(k,d=(1,1,1,1)):return tuple(val(k,d)[:3])+(1,)
+    def color(k,d=(1,1,1,1)):
+        return tuple(val(k,d)[:3])+(1,)
     def tex(k,space="sRGB",uv_index=0):
         entry=textures.get(k,{})
+        if space == "sRGB":
+            space = entry.get("meta", {}).get("colorspace", space)
         if k == "_BumpMap" and missing_normal is not None:return None
-        if not entry.get("absolute_path"):return None
+        if not entry.get("absolute_path") or not Path(bpy.path.abspath(entry["absolute_path"])).is_file():return None
         n=node("ShaderNodeTexImage",k);image=bpy.data.images.load(bpy.path.abspath(entry["absolute_path"]),check_existing=True)
         if image.colorspace_settings.name!=space:image=image.copy();image.colorspace_settings.name=space
         image.alpha_mode="CHANNEL_PACKED";n.image=image
@@ -130,9 +138,17 @@ def build(mat,document,prefix="UMD",metadata=None):
         spec=val("_Specular") if val("_SpecularAll") else op("MULTIPLY",alpha(base),val("_Specular"))
         assign(op("DIVIDE",spec,.08),bs.inputs["Specular IOR Level"])
     else:
-        packed=shader=="Custom/PBR_Packed_Alpha";base=tex("_Albedo");nmg=tex("_Normals","Non-Color");normal(nmg,packed)
+        packed=shader=="Custom/PBR_Packed_Alpha"
+        keys=set(raw.get("keywords",{}).get("valid",[]))
+        # Compiled keywords control URP variants; absent lists use toggles.
+        has_keywords="valid" in raw.get("keywords",{})
+        def enabled(keyword, prop):
+            return keyword in keys if has_keywords else bool(val(prop))
+        urp=shader=="Custom/PBR_PackedTextures"
+        rg=packed or (urp and enabled("_NORMALS_PACKED_RG", "_NormalsPackedRG"))
+        base=tex("_Albedo");nmg=tex("_Normals","Non-Color");normal(nmg,rg)
         basecolor=mix(rgb(base),color("_Color",(.5,.5,.5,0)),1,"Color tint","MULTIPLY")
-        if packed and val("_Usetintmap"):
+        if (packed and val("_Usetintmap")) or (urp and enabled("_USETINTMAP_ON", "_Usetintmap")):
             mask=tex("_Tintmask","Non-Color");sep=separate(mask)
             # Unity's UnpackNormal.r reads red in RGB imported normal maps.
             # DXT5nm/BC5 normal import stores X in alpha or red; honor meta.
@@ -140,7 +156,7 @@ def build(mat,document,prefix="UMD",metadata=None):
             mask_channel=sep.outputs[0]
             basecolor=mix(rgb(base),basecolor,op("SUBTRACT",op("MULTIPLY",mask_channel,2),1),"Normal-red tint mask")
         basecolor=mix(basecolor,(2,2,2,1),1,"Albedo x2 clamp","MULTIPLY",True)
-        emission=tex("_EmissionAO" if packed else "_Emission") if val("_UseEmissionTexture") else None
+        emission=tex("_EmissionAO" if packed else "_Emission") if (enabled("_USEEMISSIONTEXTURE_ON", "_UseEmissionTexture") if urp else val("_UseEmissionTexture")) else None
         emiss=mix(rgb(emission),color("_EmissionColor",(0,0,0,0)),1,"Emission tint","MULTIPLY")
         emiss=mix(emiss,(2,2,2,1),1,"Emission x2","MULTIPLY");assign(emiss,bs.inputs["Emission Color"]);bs.inputs["Emission Strength"].default_value=1
         if packed:
@@ -153,7 +169,7 @@ def build(mat,document,prefix="UMD",metadata=None):
                 for idx,suffix in enumerate(("ALBEDOALPHA","NORMALSALPHA","EMISSIONALPHA")):
                     if "_"+name.upper()+"SOURCE_"+suffix in keys:return channels[idx]
                 return channels[fallback]
-            metal=channel("Metallic",1);gloss=channel("Smoothness",0);ao=channel("AmbientOcclusion",2)
+            metal=separate(nmg).outputs[2] if rg and nmg else (1 if rg else channel("Metallic",1));gloss=channel("Smoothness",0);ao=channel("AmbientOcclusion",2)
         assign(op("MINIMUM",op("MULTIPLY",metal,val("_Metallic",1)),1),bs.inputs["Metallic"])
         assign(op("SUBTRACT",1,op("MINIMUM",op("MULTIPLY",gloss,val("_Smoothness",1)),1)),bs.inputs["Roughness"])
         occ=op("ADD",1-val("_AmbientOcclusion",1),op("MULTIPLY",ao,val("_AmbientOcclusion",1)))
@@ -162,11 +178,15 @@ def build(mat,document,prefix="UMD",metadata=None):
             lm=tex("_Blend_UVW2_Texture",uv_index=1)
             if lm:basecolor=mix(basecolor,mix((1,1,1,1),rgb(lm),val("_LightMapIntensity",1),"Lightmap intensity"),1,"Lightmap approximation","MULTIPLY")
         assign(basecolor,bs.inputs["Base Color"])
-        if packed and val("_UseAlphaCutout"):
-            assign(op("GREATER_THAN",alpha(base),val("_Cutoff",.5)),bs.inputs["Alpha"])
+        if (packed and val("_UseAlphaCutout")) or (urp and enabled("_ALPHATEST_ON", "_AlphaClip")):
+            # HLSL clip(alpha-cutoff) keeps equality.
+            assign(op("SUBTRACT",1,op("LESS_THAN",alpha(base),val("_Cutoff",.5))),bs.inputs["Alpha"])
+            if hasattr(mat,"surface_render_method"):mat.surface_render_method="DITHERED"
+            elif hasattr(mat,"blend_method"):
+                mat.blend_method="CLIP";mat.alpha_threshold=val("_Cutoff",.5)
     mat.use_backface_culling=True
     for k,v in (metadata or {}).items():mat[k]=v
-    mat["umd_shader_adapter"]="project-packed-formulas/2";mat["umd_unmapped"]=""
+    mat["umd_shader_adapter"]=VERSION;mat["umd_unmapped"]=""
     if missing_normal is not None:
         mat["umd_missing_normal_guid"] = missing_normal
     elif "umd_missing_normal_guid" in mat:

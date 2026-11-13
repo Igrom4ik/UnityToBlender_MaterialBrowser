@@ -10,7 +10,7 @@ from dataclasses import dataclass, field
 import os
 from pathlib import Path
 
-from . import extract, material_json
+from . import extract, material_json, color_space
 from .shader_parser import PARSER_VERSION
 
 
@@ -47,6 +47,11 @@ class DiffResult:
 
 
 def _dependencies_changed(entry: dict) -> str:
+    saved = entry.get("color_space", {}).get("space")
+    current = color_space.project_settings(entry.get("absolute_path", "")).get("space")
+    if saved != current:
+        return "Project color space changed or was not recorded"
+
     for guid, stamp in (entry.get("texture_deps") or {}).items():
         # The stored stamp is mtime:size, so a replaced texture is visible
         # without hashing multi-megabyte files.

@@ -27,8 +27,13 @@ from .interface import (
 
 
 # 2: ShaderLab keeps the `[Header(...)]` a property sits under, which is what
-# proves an Amplify `_Color` belongs to the albedo.
-PARSER_VERSION = 2
+#    proves an Amplify `_Color` belongs to the albedo.
+# 3: the ShaderLab body is read for `o.Albedo = ...`, which names the colour the
+#    shader actually tints with instead of assuming it is `_Color`.
+# 4: every surface output is traced, so texture roles and scalar mappings come
+#    from what the shader writes rather than from what the slot is called.
+# 5: retain property types, HDR/Gamma flags and project color space in sidecars.
+PARSER_VERSION = 5
 
 _FILE_BACKENDS = (shaderlab, shadergraph)
 

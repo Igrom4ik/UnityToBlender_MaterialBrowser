@@ -9,6 +9,9 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from pathlib import Path
 
+from . import dataflow
+from .dataflow import OutputBinding
+
 
 SCHEMA = 2
 
@@ -108,6 +111,22 @@ class ShaderInterface:
     source_hash: str = ""
     parser_version: int = SCHEMA
     notes: tuple[str, ...] = field(default_factory=tuple)
+    # What the shader body writes into each surface output. This is the only
+    # part of the interface that is proof rather than convention: a property
+    # name is a habit, an assignment to `o.Albedo` is a statement.
+    outputs: tuple[OutputBinding, ...] = field(default_factory=tuple)
+
+    @property
+    def by_output(self) -> dict[str, OutputBinding]:
+        return {item.output: item for item in self.outputs}
+
+    @property
+    def albedo_colors(self) -> tuple[str, ...]:
+        """Colour properties proven to tint the albedo."""
+        binding = self.by_output.get(dataflow.ALBEDO)
+        if binding is None:
+            return ()
+        return binding.multiplied_colors
 
     @property
     def by_name(self) -> dict[str, ShaderProperty]:
@@ -130,6 +149,7 @@ class ShaderInterface:
             "source_hash": self.source_hash,
             "parser_version": self.parser_version,
             "notes": list(self.notes),
+            "outputs": [item.to_data() for item in self.outputs],
         }
 
     @classmethod
@@ -147,6 +167,9 @@ class ShaderInterface:
             source_hash=data.get("source_hash", ""),
             parser_version=data.get("parser_version", SCHEMA),
             notes=tuple(data.get("notes", ())),
+            outputs=tuple(
+                OutputBinding.from_data(item) for item in data.get("outputs", [])
+            ),
         )
 
 

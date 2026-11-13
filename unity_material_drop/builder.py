@@ -387,6 +387,18 @@ def _vertex_upgrade(material, conversion):
 
 
 def _shader_upgrade(material, conversion):
+    from . import custom_unlit_urp_adapter
+    if custom_unlit_urp_adapter.supports(conversion.document):
+        return material.get("umd_shader_adapter") != custom_unlit_urp_adapter.VERSION
+    from . import window_urp_adapter
+    if conversion.document.get("shader", {}).get("name") == window_urp_adapter.SHADER:
+        return material.get("umd_shader_adapter") != window_urp_adapter.VERSION
+    from . import lit_blenduvw2_adapter
+    if lit_blenduvw2_adapter.supports(conversion.document):
+        return material.get("umd_shader_adapter") != lit_blenduvw2_adapter.VERSION
+    from . import interior_mapping_adapter
+    if interior_mapping_adapter.supports(conversion.document):
+        return material.get("umd_shader_adapter") != interior_mapping_adapter.VERSION
     from . import environment_unlit_adapter
     if environment_unlit_adapter.supports(conversion.document):
         return material.get("umd_shader_adapter") != environment_unlit_adapter.VERSION
@@ -399,7 +411,7 @@ def _shader_upgrade(material, conversion):
     if shader_adapter.supports(conversion.document):
         return material.get("umd_shader_adapter") != shader_adapter.VERSION
     if packed_shader_adapter.supports(conversion.document):
-        return material.get("umd_shader_adapter") != "project-packed-formulas/2"
+        return material.get("umd_shader_adapter") != packed_shader_adapter.VERSION
     versions={"Custom/Environment/Window":"window-ray-box/1", "Custom/Environment/FakeStairs":"fake-stairs-view-parallax/1"}
     version=versions.get(conversion.document.get("shader",{}).get("name"))
     if version:return material.get("umd_shader_adapter") != version

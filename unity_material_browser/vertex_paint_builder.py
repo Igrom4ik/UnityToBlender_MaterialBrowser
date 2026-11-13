@@ -109,6 +109,4 @@ def build(material, plan, prefix, metadata=None):
     material['umd_vertex_graph_version']=2
     material['vertex_paint_shader']='Custom/VertexColorMix4_v2'
     material['vertex_paint_help']='Use the active render color attribute. Black: base; R/G/B: painted layers. Unity world XZ maps to Blender world XY.'
-    from .vertex_paint_layout import arrange
-    arrange(tree, prefix)
     return material
